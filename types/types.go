@@ -12,6 +12,18 @@ type StringType struct {
 	Pattern   o.Optional[string]
 }
 
+type IntEnumType struct {
+	Name    string
+	Default o.Optional[int]
+	Values  []int
+}
+
+type StringEnumType struct {
+	Name    string
+	Default o.Optional[string]
+	Values  []string
+}
+
 type UUIDType struct {
 	Default o.Optional[string]
 }
@@ -73,21 +85,25 @@ type ObjectType struct {
 }
 
 type ComplexType struct {
-	Source     string
-	Name       string
-	Properties []Property
+	Source      string
+	TopLevel    bool
+	Name        string
+	Description string
+	Properties  []Property
 }
 
 type ArrayType struct {
-	Source    string
-	Name      o.Optional[string]
-	ValueType any
+	Source      string
+	Name        o.Optional[string]
+	Description string
+	ValueType   any
 }
 
 type MapType struct {
-	Source    string
-	Name      o.Optional[string]
-	ValueType any
+	Source      string
+	Name        o.Optional[string]
+	Description string
+	ValueType   any
 }
 
 type Property struct {
@@ -95,4 +111,5 @@ type Property struct {
 	ValueType    any
 	Reference    o.Optional[string]
 	ForeignKeyTo o.Optional[string]
+	Description  string
 }
