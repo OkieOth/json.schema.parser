@@ -86,6 +86,45 @@ func TestTopLevelInt(t *testing.T) {
 	}
 }
 
+func TestTopLevelNumber(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected types.NumberType
+	}{
+		{
+			input: "_resources/tests/number_1.json",
+			expected: types.NumberType{
+				Name:             o.NewOptionalValue("IAmANumber"),
+				Default:          o.NewOptionalValue(10.1),
+				Minimum:          o.NewOptionalValue(-1.1),
+				ExclusiveMaximum: o.NewOptionalValue(20.5),
+			},
+		},
+		{
+			input: "_resources/tests/number_2.json",
+			expected: types.NumberType{
+				Name:             o.NewOptionalValue("IAmAnotherNumber"),
+				Format:           o.NewOptionalValue("float32"),
+				Default:          o.NewOptionalValue(10.5),
+				Maximum:          o.NewOptionalValue(100.1),
+				ExclusiveMinimum: o.NewOptionalValue(-20.0),
+			},
+		},
+	}
+	for _, test := range tests {
+		bytes, err := os.ReadFile(test.input)
+		require.Nil(t, err)
+		m, err := p.ParseBytes(bytes)
+		require.Nil(t, err)
+		require.Len(t, m, 1, "wrong number of returned types")
+		for _, v := range m {
+			x, ok := v.(types.NumberType)
+			require.True(t, ok)
+			require.Equal(t, test.expected, x)
+		}
+	}
+}
+
 func TestTopLevelEnum(t *testing.T) {
 	tests := []struct {
 		input     string

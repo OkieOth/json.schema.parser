@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "i am another number",
+  "type": "number",
+  "format": "float32",
+  "default": 10.5,
+  "maximum": 100.1,
+  "exclusiveMinimum": -20.0
+}

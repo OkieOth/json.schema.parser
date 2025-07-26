@@ -187,7 +187,8 @@ func extractNormalType(name string, valuesMap map[string]any, alreadyExtractedTy
 		_, err := extractIntegerType(name, valuesMap, alreadyExtractedTypes, topLevel)
 		return err
 	case "number":
-		return extractNumberType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		_, err := extractNumberType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		return err
 	case "bool":
 		return extractBooleanType(name, valuesMap, alreadyExtractedTypes, topLevel)
 	case "string":
@@ -233,6 +234,17 @@ func getOptionalInt(key string, valuesMap map[string]any, allowed []int) o.Optio
 	return o.NewOptional[int]()
 }
 
+func getOptionalNumber(key string, valuesMap map[string]any, allowed []float64) o.Optional[float64] {
+	if f, ok := valuesMap[key]; ok {
+		if v, isStr := f.(float64); isStr { // needs to be float64, because JSON only now numbers by default
+			if allowed == nil || slices.Contains(allowed, v) {
+				return o.NewOptionalValue(v)
+			}
+		}
+	}
+	return o.NewOptional[float64]()
+}
+
 func extractIntegerType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.IntegerType, error) {
 	intType := types.IntegerType{
 		Name:             o.NewOptionalValue(name),
@@ -254,8 +266,25 @@ func extractIntegerType(name string, valuesMap map[string]any, alreadyExtractedT
 	}
 	return intType, nil
 }
-func extractNumberType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) error {
-	return nil // TODO
+func extractNumberType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.NumberType, error) {
+	numberType := types.NumberType{
+		Name:             o.NewOptionalValue(name),
+		Format:           getOptionalString("format", valuesMap, []string{"float32", "float64"}),
+		Default:          getOptionalNumber("default", valuesMap, nil),
+		Minimum:          getOptionalNumber("minimum", valuesMap, nil),
+		ExclusiveMinimum: getOptionalNumber("exclusiveMinimum", valuesMap, nil),
+		Maximum:          getOptionalNumber("maximum", valuesMap, nil),
+		ExclusiveMaximum: getOptionalNumber("exclusiveMaximum", valuesMap, nil),
+	}
+	if name != "" {
+		// only the case for toplevel types
+		_, exist := alreadyExtractedTypes[name]
+		if exist {
+			return numberType, fmt.Errorf("can't add float type, because a type with the same name already exists, name: %s", name)
+		}
+		alreadyExtractedTypes[name] = numberType
+	}
+	return numberType, nil
 }
 func extractBooleanType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) error {
 	return nil // TODO

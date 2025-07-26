@@ -70,11 +70,11 @@ type IntegerType struct {
 type NumberType struct {
 	Name             o.Optional[string]
 	Format           o.Optional[string]
-	Default          o.Optional[float32]
-	Minimum          o.Optional[float32]
-	ExclusiveMinimum o.Optional[float32]
-	Maximum          o.Optional[float32]
-	ExclusiveMaximum o.Optional[float32]
+	Default          o.Optional[float64]
+	Minimum          o.Optional[float64]
+	ExclusiveMinimum o.Optional[float64]
+	Maximum          o.Optional[float64]
+	ExclusiveMaximum o.Optional[float64]
 }
 
 type BoolType struct {
