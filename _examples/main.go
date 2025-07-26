@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	p "github.com/okieoth/json.schema.parser"
+	p "github.com/okieoth/jsonschemaparser"
 )
 
 func main() {
-	bytes, err := os.ReadFile("test_schema.json")
+	fileToUse := "../_resources/tests/test_schema.json"
+	bytes, err := os.ReadFile(fileToUse)
 	if err != nil {
 		panic(fmt.Sprintf("can't read input file: %v", err))
 	}

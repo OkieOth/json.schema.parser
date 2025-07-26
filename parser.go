@@ -3,6 +3,7 @@ package jsonschemaparser
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 	"unicode"
@@ -29,12 +30,10 @@ func ParseBytes(input []byte) (map[string]any, error) {
 		}
 	}
 
-	if _, ok := parsedSchema["properties"]; ok {
-		// to level object
-		err := parseTopLevelType(parsedSchema, extractedTypes)
-		if err != nil {
-			return extractedTypes, fmt.Errorf("error while parsing main type: %v", err)
-		}
+	// to level object
+	err := parseTopLevelType(parsedSchema, extractedTypes)
+	if err != nil {
+		return extractedTypes, fmt.Errorf("error while parsing main type: %v", err)
 	}
 
 	// TODO - tidy up extractedTypes and remove all redefinitions of basic types (int, number, bool, string)
@@ -91,9 +90,9 @@ func parseTypesFromDefinition(definitionsMap map[string]any, alreadyExtractedTyp
 }
 
 func extractType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) error {
-	if e, ok := valuesMap["enum"]; ok {
+	if v, ok := valuesMap["enum"]; ok {
 		// found enum entry
-		return extractEnumType(name, valuesMap, alreadyExtractedTypes, topLevel, e)
+		return extractEnumType(name, alreadyExtractedTypes, v)
 	} else if r, ok := valuesMap["$ref"]; ok {
 		// found ref entry
 		var refStr string
@@ -116,24 +115,60 @@ func extractType(name string, valuesMap map[string]any, alreadyExtractedTypes ma
 	return fmt.Errorf("missing type, ref or enum entry for type: %s", name)
 }
 
-func extractEnumType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any,
-	topLevel bool, enumValues any) error {
-	if i, ok := enumValues.([]int); ok {
-		// int array
-		newType := types.IntEnumType{
-			Name:   name,
-			Values: i,
+func toStringArray(a []any) []string {
+	ret := make([]string, 0)
+	for _, v := range a {
+		if s, ok := v.(string); ok {
+			ret = append(ret, s)
 		}
-		alreadyExtractedTypes[name] = newType
-	} else if s, ok := enumValues.([]string); ok {
-		// string array
-		newType := types.StringEnumType{
-			Name:   name,
-			Values: s,
+	}
+	return ret
+}
+
+func toIntArray(a []any) []int {
+	ret := make([]int, 0)
+	for _, v := range a {
+		if s, ok := v.(int); ok {
+			ret = append(ret, s)
+		} else if f, ok := v.(float64); ok {
+			ret = append(ret, int(f))
 		}
-		alreadyExtractedTypes[name] = newType
+	}
+	return ret
+}
+
+func extractEnumType(name string, alreadyExtractedTypes map[string]any, enumValues any) error {
+	if a, ok := enumValues.([]any); ok {
+		if len(a) > 0 {
+			if _, isInt := a[0].(int); isInt {
+				newType := types.IntEnumType{
+					Name:   name,
+					Values: toIntArray(a),
+				}
+				alreadyExtractedTypes[name] = newType
+			} else if _, isStr := a[0].(string); isStr {
+				newType := types.StringEnumType{
+					Name:   name,
+					Values: toStringArray(a),
+				}
+				alreadyExtractedTypes[name] = newType
+			} else if _, isFloat := a[0].(float64); isFloat {
+				// int values are read as numbers by go ... that means float64
+				newType := types.IntEnumType{
+					Name:   name,
+					Values: toIntArray(a),
+				}
+				alreadyExtractedTypes[name] = newType
+			} else {
+				return fmt.Errorf("unknown array entry for enum type with name: %s, type: %v", name, reflect.TypeOf(a[0]))
+			}
+
+		} else {
+			return fmt.Errorf("enum array entry has len 0 for enum type with name: %s", name)
+		}
+
 	} else {
-		return fmt.Errorf("unknown array entry for enum type with name: %s", name)
+		return fmt.Errorf("no array entry for enum type with name: %s", name)
 	}
 	return nil
 }
@@ -145,5 +180,9 @@ func extractRefType(name string, valuesMap map[string]any, alreadyExtractedTypes
 
 func extractNormalType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any,
 	topLevel bool, typeStr string) error {
+	// TODO:
+	// - ArrayType
+	// - MapType
+	// - ComplexType
 	return fmt.Errorf("TODO")
 }
