@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
 
+	o "github.com/okieoth/goptional/v3"
 	"github.com/okieoth/jsonschemaparser/types"
 )
 
@@ -180,9 +182,90 @@ func extractRefType(name string, valuesMap map[string]any, alreadyExtractedTypes
 
 func extractNormalType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any,
 	topLevel bool, typeStr string) error {
+	switch typeStr {
+	case "integer":
+		_, err := extractIntegerType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		return err
+	case "number":
+		return extractNumberType(name, valuesMap, alreadyExtractedTypes, topLevel)
+	case "bool":
+		return extractBooleanType(name, valuesMap, alreadyExtractedTypes, topLevel)
+	case "string":
+		return extractStringType(name, valuesMap, alreadyExtractedTypes, topLevel)
+	case "array":
+		return extractArrayType(name, valuesMap, alreadyExtractedTypes, topLevel)
+	case "object":
+		return extractObjectType(name, valuesMap, alreadyExtractedTypes, topLevel)
+	default:
+		return fmt.Errorf("unknown type for name: %s, type: %s", name, typeStr)
+	}
 	// TODO:
 	// - ArrayType
 	// - MapType
+	// - IntType
+	// - NumberType
+	// - BoolType
+	// - StringType
 	// - ComplexType
 	return fmt.Errorf("TODO")
+}
+
+func getOptionalString(key string, valuesMap map[string]any, allowed []string) o.Optional[string] {
+	if f, ok := valuesMap[key]; ok {
+		if s, isStr := f.(string); isStr {
+			if allowed == nil || slices.Contains(allowed, s) {
+				return o.NewOptionalValue(s)
+			}
+		}
+	}
+	return o.NewOptional[string]()
+}
+
+func getOptionalInt(key string, valuesMap map[string]any, allowed []int) o.Optional[int] {
+	if f, ok := valuesMap[key]; ok {
+		if v, isStr := f.(float64); isStr { // needs to be float64, because JSON only now numbers by default
+			s := int(v)
+			if allowed == nil || slices.Contains(allowed, s) {
+				return o.NewOptionalValue(s)
+			}
+		}
+	}
+	return o.NewOptional[int]()
+}
+
+func extractIntegerType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.IntegerType, error) {
+	intType := types.IntegerType{
+		Name:             o.NewOptionalValue(name),
+		Format:           getOptionalString("format", valuesMap, []string{"int32", "int64", "uint32", "uint64"}),
+		Default:          getOptionalInt("default", valuesMap, nil),
+		MultipleOf:       getOptionalInt("multipleOf", valuesMap, nil),
+		Minimum:          getOptionalInt("minimum", valuesMap, nil),
+		ExclusiveMinimum: getOptionalInt("exclusiveMinimum", valuesMap, nil),
+		Maximum:          getOptionalInt("maximum", valuesMap, nil),
+		ExclusiveMaximum: getOptionalInt("exclusiveMaximum", valuesMap, nil),
+	}
+	if name != "" {
+		// only the case for toplevel types
+		_, exist := alreadyExtractedTypes[name]
+		if exist {
+			return intType, fmt.Errorf("can't add int type, because a type with the same name already exists, name: %s", name)
+		}
+		alreadyExtractedTypes[name] = intType
+	}
+	return intType, nil
+}
+func extractNumberType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) error {
+	return nil // TODO
+}
+func extractBooleanType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) error {
+	return nil // TODO
+}
+func extractStringType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) error {
+	return nil // TODO
+}
+func extractArrayType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) error {
+	return nil // TODO
+}
+func extractObjectType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) error {
+	return nil // TODO
 }

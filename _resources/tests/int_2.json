@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "i am another int",
+  "type": "integer",
+  "format": "uint32",
+  "default": 10,
+  "maximum": 100,
+  "exclusiveMinimum": -20
+}

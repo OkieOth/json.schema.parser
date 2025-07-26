@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	o "github.com/okieoth/goptional/v3"
 	p "github.com/okieoth/jsonschemaparser"
 	"github.com/okieoth/jsonschemaparser/types"
 	"github.com/stretchr/testify/assert"
@@ -41,6 +42,46 @@ func TestToProperName(t *testing.T) {
 		result := p.ToProperName(tt.input)
 		if result != tt.expected {
 			t.Errorf("ToProperName(%q) = %q; expected %q", tt.input, result, tt.expected)
+		}
+	}
+}
+
+func TestTopLevelInt(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected types.IntegerType
+	}{
+		{
+			input: "_resources/tests/int_1.json",
+			expected: types.IntegerType{
+				Name:             o.NewOptionalValue("IAmAnInt"),
+				Default:          o.NewOptionalValue(10),
+				Minimum:          o.NewOptionalValue(-1),
+				ExclusiveMaximum: o.NewOptionalValue(20),
+				MultipleOf:       o.NewOptionalValue(2),
+			},
+		},
+		{
+			input: "_resources/tests/int_2.json",
+			expected: types.IntegerType{
+				Name:             o.NewOptionalValue("IAmAnotherInt"),
+				Format:           o.NewOptionalValue("uint32"),
+				Default:          o.NewOptionalValue(10),
+				Maximum:          o.NewOptionalValue(100),
+				ExclusiveMinimum: o.NewOptionalValue(-20),
+			},
+		},
+	}
+	for _, test := range tests {
+		bytes, err := os.ReadFile(test.input)
+		require.Nil(t, err)
+		m, err := p.ParseBytes(bytes)
+		require.Nil(t, err)
+		require.Len(t, m, 1, "wrong number of returned types")
+		for _, v := range m {
+			x, ok := v.(types.IntegerType)
+			require.True(t, ok)
+			require.Equal(t, test.expected, x)
 		}
 	}
 }

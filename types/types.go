@@ -57,8 +57,10 @@ type DurationType struct {
 }
 
 type IntegerType struct {
+	Name             o.Optional[string]
 	Format           o.Optional[string]
 	Default          o.Optional[int]
+	MultipleOf       o.Optional[int]
 	Minimum          o.Optional[int]
 	ExclusiveMinimum o.Optional[int]
 	Maximum          o.Optional[int]
@@ -66,6 +68,7 @@ type IntegerType struct {
 }
 
 type NumberType struct {
+	Name             o.Optional[string]
 	Format           o.Optional[string]
 	Default          o.Optional[float32]
 	Minimum          o.Optional[float32]
@@ -75,6 +78,7 @@ type NumberType struct {
 }
 
 type BoolType struct {
+	Name    o.Optional[string]
 	Default o.Optional[bool]
 }
 
@@ -82,6 +86,7 @@ type ByteType struct {
 }
 
 type ObjectType struct {
+	Name o.Optional[string]
 }
 
 type ComplexType struct {
@@ -94,16 +99,22 @@ type ComplexType struct {
 
 type ArrayType struct {
 	Source      string
-	Name        o.Optional[string]
+	Name        string
 	Description string
 	ValueType   any
 }
 
 type MapType struct {
 	Source      string
-	Name        o.Optional[string]
+	Name        string
 	Description string
 	ValueType   any
+}
+
+// This type is only used as place holder while parsing references
+type DummyType struct {
+	Source string
+	Name   string
 }
 
 type Property struct {
