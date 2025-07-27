@@ -182,34 +182,24 @@ func extractRefType(name string, valuesMap map[string]any, alreadyExtractedTypes
 
 func extractNormalType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any,
 	topLevel bool, typeStr string) error {
+	var err error
 	switch typeStr {
 	case "integer":
-		_, err := extractIntegerType(name, valuesMap, alreadyExtractedTypes, topLevel)
-		return err
+		_, err = extractIntegerType(name, valuesMap, alreadyExtractedTypes, topLevel)
 	case "number":
-		_, err := extractNumberType(name, valuesMap, alreadyExtractedTypes, topLevel)
-		return err
+		_, err = extractNumberType(name, valuesMap, alreadyExtractedTypes, topLevel)
 	case "boolean":
-		_, err := extractBooleanType(name, valuesMap, alreadyExtractedTypes, topLevel)
-		return err
+		_, err = extractBooleanType(name, valuesMap, alreadyExtractedTypes, topLevel)
 	case "string":
-		return extractStringType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		_, err = extractStringType(name, valuesMap, alreadyExtractedTypes, topLevel)
 	case "array":
-		return extractArrayType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		_, err = extractArrayType(name, valuesMap, alreadyExtractedTypes, topLevel)
 	case "object":
-		return extractObjectType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		_, err = extractObjectType(name, valuesMap, alreadyExtractedTypes, topLevel)
 	default:
-		return fmt.Errorf("unknown type for name: %s, type: %s", name, typeStr)
+		err = fmt.Errorf("unknown type for name: %s, type: %s", name, typeStr)
 	}
-	// TODO:
-	// - ArrayType
-	// - MapType
-	// - IntType
-	// - NumberType
-	// - BoolType
-	// - StringType
-	// - ComplexType
-	return fmt.Errorf("TODO")
+	return err
 }
 
 func getOptionalString(key string, valuesMap map[string]any, allowed []string) o.Optional[string] {
@@ -312,12 +302,158 @@ func extractBooleanType(name string, valuesMap map[string]any, alreadyExtractedT
 	}
 	return boolType, nil
 }
-func extractStringType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) error {
-	return nil // TODO
+func extractStringType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (any, error) {
+	f := getOptionalString("format", valuesMap, nil)
+	if formatValue, isSet := f.Get(); isSet {
+		switch formatValue {
+		case "date":
+			return extractDateType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		case "time":
+			return extractTimeType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		case "date-time":
+			return extractDateTimeType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		case "uuid":
+			return extractUuidType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		case "duration":
+			return extractDurationType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		case "binary":
+			return extractBinaryType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		}
+	}
+	return extractPureStringType(name, valuesMap, alreadyExtractedTypes, topLevel, f)
 }
-func extractArrayType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) error {
-	return nil // TODO
+
+func extractDateType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.DateType, error) {
+	t := types.DateType{
+		Name:             o.NewOptionalValue(name),
+		Default:          getOptionalString("default", valuesMap, nil),
+		Minimum:          getOptionalString("minimum", valuesMap, nil),
+		ExclusiveMinimum: getOptionalString("exclusiveMinimum", valuesMap, nil),
+		Maximum:          getOptionalString("maximum", valuesMap, nil),
+		ExclusiveMaximum: getOptionalString("exclusiveMaximum", valuesMap, nil),
+	}
+	if name != "" {
+		// only the case for toplevel types
+		_, exist := alreadyExtractedTypes[name]
+		if exist {
+			return t, fmt.Errorf("can't add date type, because a type with the same name already exists, name: %s", name)
+		}
+		alreadyExtractedTypes[name] = t
+	}
+	return t, nil
 }
-func extractObjectType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) error {
-	return nil // TODO
+
+func extractTimeType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.TimeType, error) {
+	t := types.TimeType{
+		Name:             o.NewOptionalValue(name),
+		Default:          getOptionalString("default", valuesMap, nil),
+		Minimum:          getOptionalString("minimum", valuesMap, nil),
+		ExclusiveMinimum: getOptionalString("exclusiveMinimum", valuesMap, nil),
+		Maximum:          getOptionalString("maximum", valuesMap, nil),
+		ExclusiveMaximum: getOptionalString("exclusiveMaximum", valuesMap, nil),
+	}
+	if name != "" {
+		// only the case for toplevel types
+		_, exist := alreadyExtractedTypes[name]
+		if exist {
+			return t, fmt.Errorf("can't add time type, because a type with the same name already exists, name: %s", name)
+		}
+		alreadyExtractedTypes[name] = t
+	}
+	return t, nil
+}
+
+func extractDateTimeType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.DateTimeType, error) {
+	t := types.DateTimeType{
+		Name:             o.NewOptionalValue(name),
+		Default:          getOptionalString("default", valuesMap, nil),
+		Minimum:          getOptionalString("minimum", valuesMap, nil),
+		ExclusiveMinimum: getOptionalString("exclusiveMinimum", valuesMap, nil),
+		Maximum:          getOptionalString("maximum", valuesMap, nil),
+		ExclusiveMaximum: getOptionalString("exclusiveMaximum", valuesMap, nil),
+	}
+	if name != "" {
+		// only the case for toplevel types
+		_, exist := alreadyExtractedTypes[name]
+		if exist {
+			return t, fmt.Errorf("can't add date-time type, because a type with the same name already exists, name: %s", name)
+		}
+		alreadyExtractedTypes[name] = t
+	}
+	return t, nil
+}
+
+func extractUuidType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.UUIDType, error) {
+	t := types.UUIDType{
+		Name:    o.NewOptionalValue(name),
+		Default: getOptionalString("default", valuesMap, nil),
+	}
+	if name != "" {
+		// only the case for toplevel types
+		_, exist := alreadyExtractedTypes[name]
+		if exist {
+			return t, fmt.Errorf("can't add uuid type, because a type with the same name already exists, name: %s", name)
+		}
+		alreadyExtractedTypes[name] = t
+	}
+	return t, nil
+}
+
+func extractDurationType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.DurationType, error) {
+	t := types.DurationType{
+		Name:    o.NewOptionalValue(name),
+		Default: getOptionalString("default", valuesMap, nil),
+	}
+	if name != "" {
+		// only the case for toplevel types
+		_, exist := alreadyExtractedTypes[name]
+		if exist {
+			return t, fmt.Errorf("can't add duration type, because a type with the same name already exists, name: %s", name)
+		}
+		alreadyExtractedTypes[name] = t
+	}
+	return t, nil
+}
+
+func extractBinaryType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.BinaryType, error) {
+	t := types.BinaryType{
+		Name: o.NewOptionalValue(name),
+	}
+	if name != "" {
+		// only the case for toplevel types
+		_, exist := alreadyExtractedTypes[name]
+		if exist {
+			return t, fmt.Errorf("can't add binary type, because a type with the same name already exists, name: %s", name)
+		}
+		alreadyExtractedTypes[name] = t
+	}
+	return t, nil
+}
+
+func extractPureStringType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool, formatValue o.Optional[string]) (types.StringType, error) {
+	t := types.StringType{
+		Name:      o.NewOptionalValue(name),
+		Default:   getOptionalString("default", valuesMap, nil),
+		Format:    formatValue,
+		MinLength: getOptionalInt("minLength", valuesMap, nil),
+		MaxLength: getOptionalInt("minLength", valuesMap, nil),
+		Pattern:   getOptionalString("pattern", valuesMap, nil),
+	}
+	if name != "" {
+		// only the case for toplevel types
+		_, exist := alreadyExtractedTypes[name]
+		if exist {
+			return t, fmt.Errorf("can't add string type, because a type with the same name already exists, name: %s", name)
+		}
+		alreadyExtractedTypes[name] = t
+	}
+	return t, nil
+}
+
+func extractArrayType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.ArrayType, error) {
+	return types.ArrayType{}, nil // TODO
+}
+
+func extractObjectType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.MapType, error) {
+	return types.MapType{}, nil // TODO
 }

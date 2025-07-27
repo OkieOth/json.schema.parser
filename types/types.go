@@ -5,10 +5,11 @@ import (
 )
 
 type StringType struct {
+	Name      o.Optional[string]
 	Default   o.Optional[string]
 	Format    o.Optional[string]
-	MinLength o.Optional[string]
-	MaxLength o.Optional[string]
+	MinLength o.Optional[int]
+	MaxLength o.Optional[int]
 	Pattern   o.Optional[string]
 }
 
@@ -25,10 +26,12 @@ type StringEnumType struct {
 }
 
 type UUIDType struct {
+	Name    o.Optional[string]
 	Default o.Optional[string]
 }
 
 type DateType struct {
+	Name             o.Optional[string]
 	Default          o.Optional[string]
 	Minimum          o.Optional[string]
 	ExclusiveMinimum o.Optional[string]
@@ -37,6 +40,7 @@ type DateType struct {
 }
 
 type DateTimeType struct {
+	Name             o.Optional[string]
 	Default          o.Optional[string]
 	Minimum          o.Optional[string]
 	ExclusiveMinimum o.Optional[string]
@@ -45,6 +49,7 @@ type DateTimeType struct {
 }
 
 type TimeType struct {
+	Name             o.Optional[string]
 	Default          o.Optional[string]
 	Minimum          o.Optional[string]
 	ExclusiveMinimum o.Optional[string]
@@ -53,6 +58,7 @@ type TimeType struct {
 }
 
 type DurationType struct {
+	Name    o.Optional[string]
 	Default o.Optional[string]
 }
 
@@ -82,7 +88,8 @@ type BoolType struct {
 	Default o.Optional[bool]
 }
 
-type ByteType struct {
+type BinaryType struct {
+	Name o.Optional[string]
 }
 
 type ObjectType struct {
