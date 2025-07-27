@@ -125,6 +125,33 @@ func TestTopLevelNumber(t *testing.T) {
 	}
 }
 
+func TestTopLevelBool(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected types.BoolType
+	}{
+		{
+			input: "_resources/tests/bool_1.json",
+			expected: types.BoolType{
+				Name:    o.NewOptionalValue("IAmABool"),
+				Default: o.NewOptionalValue(true),
+			},
+		},
+	}
+	for _, test := range tests {
+		bytes, err := os.ReadFile(test.input)
+		require.Nil(t, err)
+		m, err := p.ParseBytes(bytes)
+		require.Nil(t, err)
+		require.Len(t, m, 1, "wrong number of returned types")
+		for _, v := range m {
+			x, ok := v.(types.BoolType)
+			require.True(t, ok)
+			require.Equal(t, test.expected, x)
+		}
+	}
+}
+
 func TestTopLevelEnum(t *testing.T) {
 	tests := []struct {
 		input     string

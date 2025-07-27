@@ -189,8 +189,9 @@ func extractNormalType(name string, valuesMap map[string]any, alreadyExtractedTy
 	case "number":
 		_, err := extractNumberType(name, valuesMap, alreadyExtractedTypes, topLevel)
 		return err
-	case "bool":
-		return extractBooleanType(name, valuesMap, alreadyExtractedTypes, topLevel)
+	case "boolean":
+		_, err := extractBooleanType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		return err
 	case "string":
 		return extractStringType(name, valuesMap, alreadyExtractedTypes, topLevel)
 	case "array":
@@ -245,6 +246,15 @@ func getOptionalNumber(key string, valuesMap map[string]any, allowed []float64) 
 	return o.NewOptional[float64]()
 }
 
+func getOptionalBool(key string, valuesMap map[string]any) o.Optional[bool] {
+	if f, ok := valuesMap[key]; ok {
+		if v, isBool := f.(bool); isBool { // needs to be float64, because JSON only now numbers by default
+			return o.NewOptionalValue(v)
+		}
+	}
+	return o.NewOptional[bool]()
+}
+
 func extractIntegerType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.IntegerType, error) {
 	intType := types.IntegerType{
 		Name:             o.NewOptionalValue(name),
@@ -266,6 +276,7 @@ func extractIntegerType(name string, valuesMap map[string]any, alreadyExtractedT
 	}
 	return intType, nil
 }
+
 func extractNumberType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.NumberType, error) {
 	numberType := types.NumberType{
 		Name:             o.NewOptionalValue(name),
@@ -286,8 +297,20 @@ func extractNumberType(name string, valuesMap map[string]any, alreadyExtractedTy
 	}
 	return numberType, nil
 }
-func extractBooleanType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) error {
-	return nil // TODO
+func extractBooleanType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.BoolType, error) {
+	boolType := types.BoolType{
+		Name:    o.NewOptionalValue(name),
+		Default: getOptionalBool("default", valuesMap),
+	}
+	if name != "" {
+		// only the case for toplevel types
+		_, exist := alreadyExtractedTypes[name]
+		if exist {
+			return boolType, fmt.Errorf("can't add bool type, because a type with the same name already exists, name: %s", name)
+		}
+		alreadyExtractedTypes[name] = boolType
+	}
+	return boolType, nil
 }
 func extractStringType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) error {
 	return nil // TODO
