@@ -74,7 +74,8 @@ func parseTopLevelType(parsedSchema map[string]any, alreadyExtractedTypes map[st
 		currentDate := time.Now().Format("20060102")
 		typeName = "UnknownTitle_" + currentDate
 	}
-	return extractType(typeName, parsedSchema, alreadyExtractedTypes, true)
+	_, err := extractType(typeName, parsedSchema, alreadyExtractedTypes, true)
+	return err
 }
 
 func parseTypesFromDefinition(definitionsMap map[string]any, alreadyExtractedTypes map[string]any) error {
@@ -83,7 +84,7 @@ func parseTypesFromDefinition(definitionsMap map[string]any, alreadyExtractedTyp
 		if !ok {
 			return fmt.Errorf("entry in definitions map, isn't a map type")
 		}
-		err := extractType(typeName, valuesMap, alreadyExtractedTypes, true)
+		_, err := extractType(typeName, valuesMap, alreadyExtractedTypes, true)
 		if err != nil {
 			return fmt.Errorf("error while extracting type: %v", err)
 		}
@@ -91,7 +92,7 @@ func parseTypesFromDefinition(definitionsMap map[string]any, alreadyExtractedTyp
 	return nil
 }
 
-func extractType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) error {
+func extractType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (any, error) {
 	if v, ok := valuesMap["enum"]; ok {
 		// found enum entry
 		return extractEnumType(name, alreadyExtractedTypes, v)
@@ -101,7 +102,7 @@ func extractType(name string, valuesMap map[string]any, alreadyExtractedTypes ma
 		if s, ok := r.(string); ok {
 			refStr = s
 		} else {
-			return fmt.Errorf("$ref doesn't point to a string entry, type: %s", name)
+			return types.DummyType{}, fmt.Errorf("$ref doesn't point to a string entry, type: %s", name)
 		}
 		return extractRefType(name, valuesMap, alreadyExtractedTypes, topLevel, refStr)
 	} else if t, ok := valuesMap["type"]; ok {
@@ -110,11 +111,11 @@ func extractType(name string, valuesMap map[string]any, alreadyExtractedTypes ma
 		if s, ok := t.(string); ok {
 			typeStr = s
 		} else {
-			return fmt.Errorf("type entry doesn't point to a string entry, type: %s", name)
+			return types.DummyType{}, fmt.Errorf("type entry doesn't point to a string entry, type: %s", name)
 		}
 		return extractNormalType(name, valuesMap, alreadyExtractedTypes, topLevel, typeStr)
 	}
-	return fmt.Errorf("missing type, ref or enum entry for type: %s", name)
+	return types.DummyType{}, fmt.Errorf("missing type, ref or enum entry for type: %s", name)
 }
 
 func toStringArray(a []any) []string {
@@ -139,7 +140,7 @@ func toIntArray(a []any) []int {
 	return ret
 }
 
-func extractEnumType(name string, alreadyExtractedTypes map[string]any, enumValues any) error {
+func extractEnumType(name string, alreadyExtractedTypes map[string]any, enumValues any) (any, error) {
 	if a, ok := enumValues.([]any); ok {
 		if len(a) > 0 {
 			if _, isInt := a[0].(int); isInt {
@@ -148,12 +149,14 @@ func extractEnumType(name string, alreadyExtractedTypes map[string]any, enumValu
 					Values: toIntArray(a),
 				}
 				alreadyExtractedTypes[name] = newType
+				return newType, nil
 			} else if _, isStr := a[0].(string); isStr {
 				newType := types.StringEnumType{
 					Name:   name,
 					Values: toStringArray(a),
 				}
 				alreadyExtractedTypes[name] = newType
+				return newType, nil
 			} else if _, isFloat := a[0].(float64); isFloat {
 				// int values are read as numbers by go ... that means float64
 				newType := types.IntEnumType{
@@ -161,45 +164,42 @@ func extractEnumType(name string, alreadyExtractedTypes map[string]any, enumValu
 					Values: toIntArray(a),
 				}
 				alreadyExtractedTypes[name] = newType
+				return newType, nil
 			} else {
-				return fmt.Errorf("unknown array entry for enum type with name: %s, type: %v", name, reflect.TypeOf(a[0]))
+				return types.StringEnumType{}, fmt.Errorf("unknown array entry for enum type with name: %s, type: %v", name, reflect.TypeOf(a[0]))
 			}
-
 		} else {
-			return fmt.Errorf("enum array entry has len 0 for enum type with name: %s", name)
+			return types.StringEnumType{}, fmt.Errorf("enum array entry has len 0 for enum type with name: %s", name)
 		}
 
 	} else {
-		return fmt.Errorf("no array entry for enum type with name: %s", name)
+		return types.StringEnumType{}, fmt.Errorf("no array entry for enum type with name: %s", name)
 	}
-	return nil
 }
 
 func extractRefType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any,
-	topLevel bool, refStr string) error {
-	return fmt.Errorf("TODO")
+	topLevel bool, refStr string) (any, error) {
+	return types.DummyType{}, fmt.Errorf("TODO")
 }
 
 func extractNormalType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any,
-	topLevel bool, typeStr string) error {
-	var err error
+	topLevel bool, typeStr string) (any, error) {
 	switch typeStr {
 	case "integer":
-		_, err = extractIntegerType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		return extractIntegerType(name, valuesMap, alreadyExtractedTypes, topLevel)
 	case "number":
-		_, err = extractNumberType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		return extractNumberType(name, valuesMap, alreadyExtractedTypes, topLevel)
 	case "boolean":
-		_, err = extractBooleanType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		return extractBooleanType(name, valuesMap, alreadyExtractedTypes, topLevel)
 	case "string":
-		_, err = extractStringType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		return extractStringType(name, valuesMap, alreadyExtractedTypes, topLevel)
 	case "array":
-		_, err = extractArrayType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		return extractArrayType(name, valuesMap, alreadyExtractedTypes, topLevel)
 	case "object":
-		_, err = extractObjectType(name, valuesMap, alreadyExtractedTypes, topLevel)
+		return extractObjectType(name, valuesMap, alreadyExtractedTypes, topLevel)
 	default:
-		err = fmt.Errorf("unknown type for name: %s, type: %s", name, typeStr)
+		return types.DummyType{}, fmt.Errorf("unknown type for name: %s, type: %s", name, typeStr)
 	}
-	return err
 }
 
 func getOptionalString(key string, valuesMap map[string]any, allowed []string) o.Optional[string] {
@@ -450,8 +450,39 @@ func extractPureStringType(name string, valuesMap map[string]any, alreadyExtract
 	return t, nil
 }
 
+func getValueType(key string, valuesMap map[string]any, alreadyExtractedTypes map[string]any) (any, error) {
+	if f, ok := valuesMap[key]; ok {
+		if v, isMap := f.(map[string]any); isMap { // needs to be float64, because JSON only now numbers by default
+			// TODO
+			fmt.Println("TODO", v)
+		}
+	} else {
+		return types.DummyType{}, fmt.Errorf("couldn't find key to extract the value type")
+	}
+	return types.DummyType{}, nil // TODO
+}
+
 func extractArrayType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.ArrayType, error) {
-	return types.ArrayType{}, nil // TODO
+	valueType, err := getValueType("items", valuesMap, alreadyExtractedTypes)
+	if err != nil {
+		return types.ArrayType{}, fmt.Errorf("error while extract value type (name: %s): %v", name, err)
+	}
+	t := types.ArrayType{
+		Name:        o.NewOptionalValue(name),
+		MinItems:    getOptionalInt("minItems", valuesMap, nil),
+		MaxItems:    getOptionalInt("maxItems", valuesMap, nil),
+		Description: getOptionalString("description", valuesMap, nil),
+		ValueType:   valueType,
+	}
+	if name != "" {
+		// only the case for toplevel types
+		_, exist := alreadyExtractedTypes[name]
+		if exist {
+			return t, fmt.Errorf("can't add Array type, because a type with the same name already exists, name: %s", name)
+		}
+		alreadyExtractedTypes[name] = t
+	}
+	return t, nil
 }
 
 func extractObjectType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.MapType, error) {

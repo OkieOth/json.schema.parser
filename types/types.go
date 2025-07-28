@@ -100,21 +100,23 @@ type ComplexType struct {
 	Source      string
 	TopLevel    bool
 	Name        string
-	Description string
+	Description o.Optional[string]
 	Properties  []Property
 }
 
 type ArrayType struct {
 	Source      string
-	Name        string
-	Description string
+	Name        o.Optional[string]
+	MinItems    o.Optional[int]
+	MaxItems    o.Optional[int]
+	Description o.Optional[string]
 	ValueType   any
 }
 
 type MapType struct {
 	Source      string
 	Name        string
-	Description string
+	Description o.Optional[string]
 	ValueType   any
 }
 
