@@ -213,3 +213,46 @@ func TestTopLevelEnum(t *testing.T) {
 		}
 	}
 }
+
+func TestTopArrayType(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected types.ArrayType
+	}{
+		{
+			input: "_resources/tests/array_1.json",
+			expected: types.ArrayType{
+				Name: o.NewOptionalValue("IAmAnArray"),
+				ValueType: types.IntegerType{
+					Default:          o.NewOptionalValue(10),
+					Minimum:          o.NewOptionalValue(-1),
+					ExclusiveMaximum: o.NewOptionalValue(20),
+					MultipleOf:       o.NewOptionalValue(2),
+				},
+			},
+		},
+		{
+			input: "_resources/tests/array_2.json",
+			expected: types.ArrayType{
+				Name:     o.NewOptionalValue("IAmAnotherArray"),
+				MinItems: o.NewOptionalValue(1),
+				MaxItems: o.NewOptionalValue(10),
+				ValueType: types.UUIDType{
+					Default: o.NewOptionalValue("7aca7f3e-6cbc-11f0-a324-037c2bd487d4"),
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		bytes, err := os.ReadFile(test.input)
+		require.Nil(t, err)
+		m, err := p.ParseBytes(bytes)
+		require.Nil(t, err)
+		require.Len(t, m, 1, "wrong number of returned types")
+		for _, v := range m {
+			x, ok := v.(types.ArrayType)
+			require.True(t, ok)
+			require.Equal(t, test.expected, x)
+		}
+	}
+}

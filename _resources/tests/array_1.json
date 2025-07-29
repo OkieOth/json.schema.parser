@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "i am an array",
+  "type": "array",
+  "items": {
+    "type": "integer",
+    "default": 10,
+    "minimum": -1,
+    "exclusiveMaximum": 20,
+    "multipleOf": 2
+  }
+}

@@ -247,9 +247,14 @@ func getOptionalBool(key string, valuesMap map[string]any) o.Optional[bool] {
 	return o.NewOptional[bool]()
 }
 
+func ignoreIfEmptyStr(s string) bool {
+	return s != ""
+}
+
 func extractIntegerType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.IntegerType, error) {
+
 	intType := types.IntegerType{
-		Name:             o.NewOptionalValue(name),
+		Name:             o.NewOptionalConditional[string](name, ignoreIfEmptyStr),
 		Format:           getOptionalString("format", valuesMap, []string{"int32", "int64", "uint32", "uint64"}),
 		Default:          getOptionalInt("default", valuesMap, nil),
 		MultipleOf:       getOptionalInt("multipleOf", valuesMap, nil),
@@ -271,7 +276,7 @@ func extractIntegerType(name string, valuesMap map[string]any, alreadyExtractedT
 
 func extractNumberType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.NumberType, error) {
 	numberType := types.NumberType{
-		Name:             o.NewOptionalValue(name),
+		Name:             o.NewOptionalConditional[string](name, ignoreIfEmptyStr),
 		Format:           getOptionalString("format", valuesMap, []string{"float32", "float64"}),
 		Default:          getOptionalNumber("default", valuesMap, nil),
 		Minimum:          getOptionalNumber("minimum", valuesMap, nil),
@@ -291,7 +296,7 @@ func extractNumberType(name string, valuesMap map[string]any, alreadyExtractedTy
 }
 func extractBooleanType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.BoolType, error) {
 	boolType := types.BoolType{
-		Name:    o.NewOptionalValue(name),
+		Name:    o.NewOptionalConditional[string](name, ignoreIfEmptyStr),
 		Default: getOptionalBool("default", valuesMap),
 	}
 	if name != "" {
@@ -327,7 +332,7 @@ func extractStringType(name string, valuesMap map[string]any, alreadyExtractedTy
 
 func extractDateType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.DateType, error) {
 	t := types.DateType{
-		Name:             o.NewOptionalValue(name),
+		Name:             o.NewOptionalConditional[string](name, ignoreIfEmptyStr),
 		Default:          getOptionalString("default", valuesMap, nil),
 		Minimum:          getOptionalString("minimum", valuesMap, nil),
 		ExclusiveMinimum: getOptionalString("exclusiveMinimum", valuesMap, nil),
@@ -347,7 +352,7 @@ func extractDateType(name string, valuesMap map[string]any, alreadyExtractedType
 
 func extractTimeType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.TimeType, error) {
 	t := types.TimeType{
-		Name:             o.NewOptionalValue(name),
+		Name:             o.NewOptionalConditional[string](name, ignoreIfEmptyStr),
 		Default:          getOptionalString("default", valuesMap, nil),
 		Minimum:          getOptionalString("minimum", valuesMap, nil),
 		ExclusiveMinimum: getOptionalString("exclusiveMinimum", valuesMap, nil),
@@ -367,7 +372,7 @@ func extractTimeType(name string, valuesMap map[string]any, alreadyExtractedType
 
 func extractDateTimeType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.DateTimeType, error) {
 	t := types.DateTimeType{
-		Name:             o.NewOptionalValue(name),
+		Name:             o.NewOptionalConditional[string](name, ignoreIfEmptyStr),
 		Default:          getOptionalString("default", valuesMap, nil),
 		Minimum:          getOptionalString("minimum", valuesMap, nil),
 		ExclusiveMinimum: getOptionalString("exclusiveMinimum", valuesMap, nil),
@@ -387,7 +392,7 @@ func extractDateTimeType(name string, valuesMap map[string]any, alreadyExtracted
 
 func extractUuidType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.UUIDType, error) {
 	t := types.UUIDType{
-		Name:    o.NewOptionalValue(name),
+		Name:    o.NewOptionalConditional[string](name, ignoreIfEmptyStr),
 		Default: getOptionalString("default", valuesMap, nil),
 	}
 	if name != "" {
@@ -403,7 +408,7 @@ func extractUuidType(name string, valuesMap map[string]any, alreadyExtractedType
 
 func extractDurationType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.DurationType, error) {
 	t := types.DurationType{
-		Name:    o.NewOptionalValue(name),
+		Name:    o.NewOptionalConditional[string](name, ignoreIfEmptyStr),
 		Default: getOptionalString("default", valuesMap, nil),
 	}
 	if name != "" {
@@ -419,7 +424,7 @@ func extractDurationType(name string, valuesMap map[string]any, alreadyExtracted
 
 func extractBinaryType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.BinaryType, error) {
 	t := types.BinaryType{
-		Name: o.NewOptionalValue(name),
+		Name: o.NewOptionalConditional[string](name, ignoreIfEmptyStr),
 	}
 	if name != "" {
 		// only the case for toplevel types
@@ -434,7 +439,7 @@ func extractBinaryType(name string, valuesMap map[string]any, alreadyExtractedTy
 
 func extractPureStringType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool, formatValue o.Optional[string]) (types.StringType, error) {
 	t := types.StringType{
-		Name:      o.NewOptionalValue(name),
+		Name:      o.NewOptionalConditional[string](name, ignoreIfEmptyStr),
 		Default:   getOptionalString("default", valuesMap, nil),
 		Format:    formatValue,
 		MinLength: getOptionalInt("minLength", valuesMap, nil),
@@ -469,7 +474,7 @@ func extractArrayType(name string, valuesMap map[string]any, alreadyExtractedTyp
 		return types.ArrayType{}, fmt.Errorf("error while extract value type (name: %s): %v", name, err)
 	}
 	t := types.ArrayType{
-		Name:        o.NewOptionalValue(name),
+		Name:        o.NewOptionalConditional[string](name, ignoreIfEmptyStr),
 		MinItems:    getOptionalInt("minItems", valuesMap, nil),
 		MaxItems:    getOptionalInt("maxItems", valuesMap, nil),
 		Description: getOptionalString("description", valuesMap, nil),

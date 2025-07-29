@@ -4,7 +4,6 @@
   "type": "integer",
   "default": 10,
   "minimum": -1,
-  "exclusiv
-  eMaximum": 20,
+  "exclusiveMaximum": 20,
   "multipleOf": 2
 }

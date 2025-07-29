@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "i am another array",
+  "type": "array",
+  "items": {
+    "type": "string",
+    "format": "uuid",
+    "default": "7aca7f3e-6cbc-11f0-a324-037c2bd487d4"
+  },
+  "minItems": 1,
+  "maxItems": 10
+}

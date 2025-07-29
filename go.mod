@@ -3,7 +3,7 @@ module github.com/okieoth/jsonschemaparser
 go 1.24.0
 
 require (
-	github.com/okieoth/goptional/v3 v3.0.1
+	github.com/okieoth/goptional/v3 v3.1.0
 	github.com/stretchr/testify v1.10.0
 )
 
