@@ -13,6 +13,8 @@ import (
 	"github.com/okieoth/jsonschemaparser/types"
 )
 
+const NO_NAME = ""
+
 func ParseBytes(input []byte) (map[string]any, error) {
 	var parsedSchema map[string]any
 	extractedTypes := make(map[string]any, 0)
@@ -453,8 +455,7 @@ func extractPureStringType(name string, valuesMap map[string]any, alreadyExtract
 func getValueType(key string, valuesMap map[string]any, alreadyExtractedTypes map[string]any) (any, error) {
 	if f, ok := valuesMap[key]; ok {
 		if v, isMap := f.(map[string]any); isMap { // needs to be float64, because JSON only now numbers by default
-			// TODO
-			fmt.Println("TODO", v)
+			return extractType(NO_NAME, v, alreadyExtractedTypes, false)
 		}
 	} else {
 		return types.DummyType{}, fmt.Errorf("couldn't find key to extract the value type")
