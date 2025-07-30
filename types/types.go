@@ -89,11 +89,13 @@ type BoolType struct {
 }
 
 type BinaryType struct {
-	Name o.Optional[string]
+	Name        o.Optional[string]
+	Description o.Optional[string]
 }
 
 type ObjectType struct {
-	Name o.Optional[string]
+	Name        o.Optional[string]
+	Description o.Optional[string]
 }
 
 type ComplexType struct {
@@ -118,6 +120,7 @@ type MapType struct {
 	Name        string
 	Description o.Optional[string]
 	ValueType   any
+	TopLevel    bool
 }
 
 // This type is only used as place holder while parsing references
@@ -131,5 +134,5 @@ type Property struct {
 	ValueType    any
 	Reference    o.Optional[string]
 	ForeignKeyTo o.Optional[string]
-	Description  string
+	Description  o.Optional[string]
 }

@@ -15,6 +15,10 @@ import (
 
 const NO_NAME = ""
 
+func ignoreIfEmptyStr(s string) bool {
+	return s != ""
+}
+
 func ParseBytes(input []byte) (map[string]any, error) {
 	var parsedSchema map[string]any
 	extractedTypes := make(map[string]any, 0)
@@ -245,10 +249,6 @@ func getOptionalBool(key string, valuesMap map[string]any) o.Optional[bool] {
 		}
 	}
 	return o.NewOptional[bool]()
-}
-
-func ignoreIfEmptyStr(s string) bool {
-	return s != ""
 }
 
 func extractIntegerType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.IntegerType, error) {
@@ -491,6 +491,48 @@ func extractArrayType(name string, valuesMap map[string]any, alreadyExtractedTyp
 	return t, nil
 }
 
-func extractObjectType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.MapType, error) {
-	return types.MapType{}, nil // TODO
+func extractComplexType(name string, propertiesMap map[string]any, description o.Optional[string],
+	alreadyExtractedTypes map[string]any, topLevel bool) (types.ComplexType, error) {
+	return types.ComplexType{}, nil // TODO
+}
+
+func extractMapType(name string, propertiesMap map[string]any, description o.Optional[string],
+	alreadyExtractedTypes map[string]any, topLevel bool) (types.MapType, error) {
+	valueType, err := extractType(NO_NAME, propertiesMap, alreadyExtractedTypes, false)
+	if err != nil {
+		return types.MapType{}, fmt.Errorf("error while extract value type for map type (name: %s): %v", name, err)
+	}
+	t := types.MapType{
+		Name:        name,
+		Description: description,
+		ValueType:   valueType,
+		TopLevel:    topLevel,
+	}
+	if name != "" {
+		// only the case for toplevel types
+		_, exist := alreadyExtractedTypes[name]
+		if exist {
+			return t, fmt.Errorf("can't add map type, because a type with the same name already exists, name: %s", name)
+		}
+		alreadyExtractedTypes[name] = t
+	}
+	return t, nil
+}
+
+func extractObjectType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (any, error) {
+	description := getOptionalString("description", valuesMap, nil)
+	if properties, ok := valuesMap["properties"]; ok {
+		if m, isMap := properties.(map[string]any); isMap {
+			// found normal complex type
+			return extractComplexType(name, m, description, alreadyExtractedTypes, topLevel)
+		}
+	} else if additionalProperties, ok := valuesMap["additionalProperties"]; ok {
+		if m, isMap := additionalProperties.(map[string]any); isMap {
+			// found dictionary/map type
+			return extractMapType(name, m, description, alreadyExtractedTypes, topLevel)
+		}
+	}
+	return types.ObjectType{
+		Name: o.NewOptionalConditional(name, ignoreIfEmptyStr),
+	}, nil // TODO
 }
