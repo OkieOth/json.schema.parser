@@ -132,7 +132,6 @@ type DummyType struct {
 type Property struct {
 	Name         string
 	ValueType    any
-	Reference    o.Optional[string]
 	ForeignKeyTo o.Optional[string]
 	Description  o.Optional[string]
 }

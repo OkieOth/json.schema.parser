@@ -244,7 +244,7 @@ func getOptionalNumber(key string, valuesMap map[string]any, allowed []float64) 
 
 func getOptionalBool(key string, valuesMap map[string]any) o.Optional[bool] {
 	if f, ok := valuesMap[key]; ok {
-		if v, isBool := f.(bool); isBool { // needs to be float64, because JSON only now numbers by default
+		if v, isBool := f.(bool); isBool {
 			return o.NewOptionalValue(v)
 		}
 	}
@@ -459,13 +459,14 @@ func extractPureStringType(name string, valuesMap map[string]any, alreadyExtract
 
 func getValueType(key string, valuesMap map[string]any, alreadyExtractedTypes map[string]any) (any, error) {
 	if f, ok := valuesMap[key]; ok {
-		if v, isMap := f.(map[string]any); isMap { // needs to be float64, because JSON only now numbers by default
+		if v, isMap := f.(map[string]any); isMap {
 			return extractType(NO_NAME, v, alreadyExtractedTypes, false)
+		} else {
+			return types.DummyType{}, fmt.Errorf("given key is no map type (key: %s)", key) // TODO
 		}
 	} else {
 		return types.DummyType{}, fmt.Errorf("couldn't find key to extract the value type")
 	}
-	return types.DummyType{}, nil // TODO
 }
 
 func extractArrayType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.ArrayType, error) {
@@ -491,9 +492,44 @@ func extractArrayType(name string, valuesMap map[string]any, alreadyExtractedTyp
 	return t, nil
 }
 
+func extractProperties(parentTypeName string, propertiesMap map[string]any, alreadyExtractedTypes map[string]any) ([]types.Property, error) {
+	ret := make([]types.Property, 0)
+	for key, value := range propertiesMap {
+		var valuesMap map[string]any
+		if m, isMap := value.(map[string]any); !isMap {
+			return []types.Property{}, fmt.Errorf("schema value no map for complex type: %s, property: %s",
+				parentTypeName, key)
+		} else {
+			valuesMap = m
+		}
+		newTypeName := ToProperName(parentTypeName + " " + key)
+		valueType, err := extractType(newTypeName, valuesMap, alreadyExtractedTypes, false)
+		if err != nil {
+			return []types.Property{}, fmt.Errorf("error while building property for complex type: %s, property: %s",
+				parentTypeName, key)
+		}
+		ret = append(ret, types.Property{
+			Name:         key,
+			ValueType:    valueType,
+			ForeignKeyTo: getOptionalString("x-ref", valuesMap, nil),
+			Description:  getOptionalString("description", valuesMap, nil),
+		})
+	}
+	return ret, nil
+}
+
 func extractComplexType(name string, propertiesMap map[string]any, description o.Optional[string],
 	alreadyExtractedTypes map[string]any, topLevel bool) (types.ComplexType, error) {
-	return types.ComplexType{}, nil // TODO
+	properties, err := extractProperties(name, propertiesMap, alreadyExtractedTypes)
+	if err != nil {
+		return types.ComplexType{}, fmt.Errorf("couldn't extract properties for complex type: %s", name)
+	}
+	return types.ComplexType{
+		Name:        name,
+		TopLevel:    topLevel,
+		Description: description,
+		Properties:  properties,
+	}, nil // TODO
 }
 
 func extractMapType(name string, propertiesMap map[string]any, description o.Optional[string],
