@@ -62,7 +62,7 @@ func ToProperName(input string) string {
 			result.WriteRune(unicode.ToUpper(r))
 			capNext = false
 		} else {
-			result.WriteRune(unicode.ToLower(r))
+			result.WriteRune(r)
 		}
 	}
 	return result.String()
@@ -263,7 +263,7 @@ func extractIntegerType(name string, valuesMap map[string]any, alreadyExtractedT
 		Maximum:          getOptionalInt("maximum", valuesMap, nil),
 		ExclusiveMaximum: getOptionalInt("exclusiveMaximum", valuesMap, nil),
 	}
-	if name != "" {
+	if topLevel && name != "" {
 		// only the case for toplevel types
 		_, exist := alreadyExtractedTypes[name]
 		if exist {
@@ -284,7 +284,7 @@ func extractNumberType(name string, valuesMap map[string]any, alreadyExtractedTy
 		Maximum:          getOptionalNumber("maximum", valuesMap, nil),
 		ExclusiveMaximum: getOptionalNumber("exclusiveMaximum", valuesMap, nil),
 	}
-	if name != "" {
+	if topLevel && name != "" {
 		// only the case for toplevel types
 		_, exist := alreadyExtractedTypes[name]
 		if exist {
@@ -299,7 +299,7 @@ func extractBooleanType(name string, valuesMap map[string]any, alreadyExtractedT
 		Name:    o.NewOptionalConditional[string](name, ignoreIfEmptyStr),
 		Default: getOptionalBool("default", valuesMap),
 	}
-	if name != "" {
+	if topLevel && name != "" {
 		// only the case for toplevel types
 		_, exist := alreadyExtractedTypes[name]
 		if exist {
@@ -339,7 +339,7 @@ func extractDateType(name string, valuesMap map[string]any, alreadyExtractedType
 		Maximum:          getOptionalString("maximum", valuesMap, nil),
 		ExclusiveMaximum: getOptionalString("exclusiveMaximum", valuesMap, nil),
 	}
-	if name != "" {
+	if topLevel && name != "" {
 		// only the case for toplevel types
 		_, exist := alreadyExtractedTypes[name]
 		if exist {
@@ -359,7 +359,7 @@ func extractTimeType(name string, valuesMap map[string]any, alreadyExtractedType
 		Maximum:          getOptionalString("maximum", valuesMap, nil),
 		ExclusiveMaximum: getOptionalString("exclusiveMaximum", valuesMap, nil),
 	}
-	if name != "" {
+	if topLevel && name != "" {
 		// only the case for toplevel types
 		_, exist := alreadyExtractedTypes[name]
 		if exist {
@@ -379,7 +379,7 @@ func extractDateTimeType(name string, valuesMap map[string]any, alreadyExtracted
 		Maximum:          getOptionalString("maximum", valuesMap, nil),
 		ExclusiveMaximum: getOptionalString("exclusiveMaximum", valuesMap, nil),
 	}
-	if name != "" {
+	if topLevel && name != "" {
 		// only the case for toplevel types
 		_, exist := alreadyExtractedTypes[name]
 		if exist {
@@ -395,7 +395,7 @@ func extractUuidType(name string, valuesMap map[string]any, alreadyExtractedType
 		Name:    o.NewOptionalConditional[string](name, ignoreIfEmptyStr),
 		Default: getOptionalString("default", valuesMap, nil),
 	}
-	if name != "" {
+	if topLevel && name != "" {
 		// only the case for toplevel types
 		_, exist := alreadyExtractedTypes[name]
 		if exist {
@@ -411,7 +411,7 @@ func extractDurationType(name string, valuesMap map[string]any, alreadyExtracted
 		Name:    o.NewOptionalConditional[string](name, ignoreIfEmptyStr),
 		Default: getOptionalString("default", valuesMap, nil),
 	}
-	if name != "" {
+	if topLevel && name != "" {
 		// only the case for toplevel types
 		_, exist := alreadyExtractedTypes[name]
 		if exist {
@@ -426,7 +426,7 @@ func extractBinaryType(name string, valuesMap map[string]any, alreadyExtractedTy
 	t := types.BinaryType{
 		Name: o.NewOptionalConditional[string](name, ignoreIfEmptyStr),
 	}
-	if name != "" {
+	if topLevel && name != "" {
 		// only the case for toplevel types
 		_, exist := alreadyExtractedTypes[name]
 		if exist {
@@ -446,7 +446,7 @@ func extractPureStringType(name string, valuesMap map[string]any, alreadyExtract
 		MaxLength: getOptionalInt("minLength", valuesMap, nil),
 		Pattern:   getOptionalString("pattern", valuesMap, nil),
 	}
-	if name != "" {
+	if topLevel && name != "" {
 		// only the case for toplevel types
 		_, exist := alreadyExtractedTypes[name]
 		if exist {
@@ -457,10 +457,10 @@ func extractPureStringType(name string, valuesMap map[string]any, alreadyExtract
 	return t, nil
 }
 
-func getValueType(key string, valuesMap map[string]any, alreadyExtractedTypes map[string]any) (any, error) {
+func getValueType(name, key string, valuesMap map[string]any, alreadyExtractedTypes map[string]any) (any, error) {
 	if f, ok := valuesMap[key]; ok {
 		if v, isMap := f.(map[string]any); isMap {
-			return extractType(NO_NAME, v, alreadyExtractedTypes, false)
+			return extractType(name, v, alreadyExtractedTypes, false)
 		} else {
 			return types.DummyType{}, fmt.Errorf("given key is no map type (key: %s)", key) // TODO
 		}
@@ -470,7 +470,7 @@ func getValueType(key string, valuesMap map[string]any, alreadyExtractedTypes ma
 }
 
 func extractArrayType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.ArrayType, error) {
-	valueType, err := getValueType("items", valuesMap, alreadyExtractedTypes)
+	valueType, err := getValueType(name, "items", valuesMap, alreadyExtractedTypes)
 	if err != nil {
 		return types.ArrayType{}, fmt.Errorf("error while extract value type (name: %s): %v", name, err)
 	}
@@ -481,7 +481,7 @@ func extractArrayType(name string, valuesMap map[string]any, alreadyExtractedTyp
 		Description: getOptionalString("description", valuesMap, nil),
 		ValueType:   valueType,
 	}
-	if name != "" {
+	if topLevel && name != "" {
 		// only the case for toplevel types
 		_, exist := alreadyExtractedTypes[name]
 		if exist {
@@ -502,7 +502,7 @@ func extractProperties(parentTypeName string, propertiesMap map[string]any, alre
 		} else {
 			valuesMap = m
 		}
-		newTypeName := ToProperName(parentTypeName + " " + key)
+		newTypeName := ToProperName(parentTypeName + " " + ToProperName(key))
 		valueType, err := extractType(newTypeName, valuesMap, alreadyExtractedTypes, false)
 		if err != nil {
 			return []types.Property{}, fmt.Errorf("error while building property for complex type: %s, property: %s",
@@ -524,17 +524,24 @@ func extractComplexType(name string, propertiesMap map[string]any, description o
 	if err != nil {
 		return types.ComplexType{}, fmt.Errorf("couldn't extract properties for complex type: %s", name)
 	}
-	return types.ComplexType{
+	t := types.ComplexType{
 		Name:        name,
 		TopLevel:    topLevel,
 		Description: description,
 		Properties:  properties,
-	}, nil // TODO
+	}
+	// only the case for toplevel types
+	_, exist := alreadyExtractedTypes[name]
+	if exist {
+		return t, fmt.Errorf("can't add Array type, because a type with the same name already exists, name: %s", name)
+	}
+	alreadyExtractedTypes[name] = t
+	return t, nil
 }
 
 func extractMapType(name string, propertiesMap map[string]any, description o.Optional[string],
 	alreadyExtractedTypes map[string]any, topLevel bool) (types.MapType, error) {
-	valueType, err := extractType(NO_NAME, propertiesMap, alreadyExtractedTypes, false)
+	valueType, err := extractType(name, propertiesMap, alreadyExtractedTypes, false)
 	if err != nil {
 		return types.MapType{}, fmt.Errorf("error while extract value type for map type (name: %s): %v", name, err)
 	}
@@ -544,7 +551,7 @@ func extractMapType(name string, propertiesMap map[string]any, description o.Opt
 		ValueType:   valueType,
 		TopLevel:    topLevel,
 	}
-	if name != "" {
+	if topLevel && name != "" {
 		// only the case for toplevel types
 		_, exist := alreadyExtractedTypes[name]
 		if exist {
