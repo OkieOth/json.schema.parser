@@ -470,7 +470,8 @@ func getValueType(name, key string, valuesMap map[string]any, alreadyExtractedTy
 }
 
 func extractArrayType(name string, valuesMap map[string]any, alreadyExtractedTypes map[string]any, topLevel bool) (types.ArrayType, error) {
-	valueType, err := getValueType(name, "items", valuesMap, alreadyExtractedTypes)
+	itemsTypeName := ToProperName(name + " Items")
+	valueType, err := getValueType(itemsTypeName, "items", valuesMap, alreadyExtractedTypes)
 	if err != nil {
 		return types.ArrayType{}, fmt.Errorf("error while extract value type (name: %s): %v", name, err)
 	}

@@ -15,9 +15,41 @@ import (
 func TestParseBytes(t *testing.T) {
 	bytes, err := os.ReadFile("_resources/tests/test_schema.json")
 	require.Nil(t, err)
-	types, err := p.ParseBytes(bytes)
+	typesMap, err := p.ParseBytes(bytes)
 	require.Nil(t, err)
-	fmt.Println(types)
+	require.NotNil(t, typesMap, "types map is nil")
+	require.Equal(t, 5, len(typesMap), "wrong number of elements in types map")
+
+	personName, exist := typesMap["PersonName"]
+	require.True(t, exist, "PersonName doesn't exist")
+	personNameComplex, ok := personName.(types.ComplexType)
+	require.True(t, ok, "PersonName isn't complex type")
+	fmt.Println(personNameComplex)
+
+	personContact, exist := typesMap["PersonContact"]
+	require.True(t, exist, "PersonContact doesn't exist")
+	personContactComplex, ok := personContact.(types.ComplexType)
+	require.True(t, ok, "PersonContact isn't complex type")
+	fmt.Println(personContactComplex)
+
+	personContactAddress, exist := typesMap["PersonContactAddress"]
+	require.True(t, exist, "PersonContactAddress doesn't exist")
+	personContactAddressComplex, ok := personContactAddress.(types.ComplexType)
+	require.True(t, ok, "PersonContactAddress isn't complex type")
+	fmt.Println(personContactAddressComplex)
+
+	personRoles, exist := typesMap["PersonRolesItems"]
+	require.True(t, exist, "PersonRolesItems doesn't exist")
+	personRolesComplex, ok := personRoles.(types.StringEnumType)
+	require.True(t, ok, "PersonRoles isn't complex type")
+	fmt.Println(personRolesComplex)
+
+	person, exist := typesMap["Person"]
+	require.True(t, exist, "Person doesn't exist")
+	personComplex, ok := person.(types.ComplexType)
+	require.True(t, ok, "Person isn't complex type")
+	fmt.Println(personComplex)
+
 }
 
 func TestToProperName(t *testing.T) {
