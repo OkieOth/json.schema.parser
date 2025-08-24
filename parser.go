@@ -44,33 +44,92 @@ func ParseBytes(input []byte) (types.ParseResult, error) {
 		return extractedTypes, fmt.Errorf("error while parsing main type: %v", err)
 	}
 
-	// TODO - find unresolved references
-	// if t, exist := alreadyExtractedTypes.ComplexTypes[typeName]; exist {
-	// if t, exist := alreadyExtractedTypes.StringEnums[typeName]; exist {
-	// if t, exist := alreadyExtractedTypes.IntEnums[typeName]; exist {
-	// if t, exist := alreadyExtractedTypes.ArrayTypes[typeName]; exist {
-	// if t, exist := alreadyExtractedTypes.MapTypes[typeName]; exist {
-	// if t, exist := alreadyExtractedTypes.IntegerTypes[typeName]; exist {
-	// if t, exist := alreadyExtractedTypes.NumberTypes[typeName]; exist {
-	// if t, exist := alreadyExtractedTypes.StringTypes[typeName]; exist {
-	// if t, exist := alreadyExtractedTypes.UUIDTypes[typeName]; exist {
-	// if t, exist := alreadyExtractedTypes.DateTypes[typeName]; exist {
-	// if t, exist := alreadyExtractedTypes.DateTimeTypes[typeName]; exist {
-	// if t, exist := alreadyExtractedTypes.TimeTypes[typeName]; exist {
-	// if t, exist := alreadyExtractedTypes.DurationTypes[typeName]; exist {
-	// if t, exist := alreadyExtractedTypes.BoolTypes[typeName]; exist {
-	// if t, exist := alreadyExtractedTypes.BinaryTypes[typeName]; exist {
-	// if t, exist := alreadyExtractedTypes.ObjectTypes[typeName]; exist {
-
+	// resolve so far skipped references, that were later extract in the parsing and
+	// temporary replaced with DummyTypes
+	if err := resolveDummyTypesForComplexTypes(&extractedTypes); err != nil {
+		return extractedTypes, fmt.Errorf("error while resolving dummy types for complex types: %v", err)
+	}
+	if err := resolveDummyTypesForMapTypes(&extractedTypes); err != nil {
+		return extractedTypes, fmt.Errorf("error while resolving dummy types for map types: %v", err)
+	}
+	if err := resolveDummyTypesForArrayTypes(&extractedTypes); err != nil {
+		return extractedTypes, fmt.Errorf("error while resolving dummy types for array types: %v", err)
+	}
 	return extractedTypes, nil
 }
 
-func resolveDummyTypesForComplexTypes(extractedTypes *types.ParseResult) {
+func getTypeByNameFromMap[T any](nameToFind string, mapToCheck map[string]T) (any, bool) {
+	for name, t := range mapToCheck {
+		if name == nameToFind {
+			return t, true
+		}
+	}
+	return types.DummyType{}, false
+}
+
+func getTypeByName(extractedTypes *types.ParseResult, typeName string) (any, error) {
+	if t, found := getTypeByNameFromMap(typeName, extractedTypes.StringEnums); found {
+		return t, nil
+	}
+	if t, found := getTypeByNameFromMap(typeName, extractedTypes.ComplexTypes); found {
+		return t, nil
+	}
+	if t, found := getTypeByNameFromMap(typeName, extractedTypes.IntEnums); found {
+		return t, nil
+	}
+	if t, found := getTypeByNameFromMap(typeName, extractedTypes.ArrayTypes); found {
+		return t, nil
+	}
+	if t, found := getTypeByNameFromMap(typeName, extractedTypes.MapTypes); found {
+		return t, nil
+	}
+	if t, found := getTypeByNameFromMap(typeName, extractedTypes.IntegerTypes); found {
+		return t, nil
+	}
+	if t, found := getTypeByNameFromMap(typeName, extractedTypes.NumberTypes); found {
+		return t, nil
+	}
+	if t, found := getTypeByNameFromMap(typeName, extractedTypes.StringTypes); found {
+		return t, nil
+	}
+	if t, found := getTypeByNameFromMap(typeName, extractedTypes.UUIDTypes); found {
+		return t, nil
+	}
+	if t, found := getTypeByNameFromMap(typeName, extractedTypes.DateTypes); found {
+		return t, nil
+	}
+	if t, found := getTypeByNameFromMap(typeName, extractedTypes.DateTimeTypes); found {
+		return t, nil
+	}
+	if t, found := getTypeByNameFromMap(typeName, extractedTypes.TimeTypes); found {
+		return t, nil
+	}
+	if t, found := getTypeByNameFromMap(typeName, extractedTypes.DurationTypes); found {
+		return t, nil
+	}
+	if t, found := getTypeByNameFromMap(typeName, extractedTypes.BoolTypes); found {
+		return t, nil
+	}
+	if t, found := getTypeByNameFromMap(typeName, extractedTypes.BinaryTypes); found {
+		return t, nil
+	}
+	if t, found := getTypeByNameFromMap(typeName, extractedTypes.ObjectTypes); found {
+		return t, nil
+	}
+	return types.DummyType{}, fmt.Errorf("couldn't find type with name: %s", typeName)
+}
+
+func resolveDummyTypesForComplexTypes(extractedTypes *types.ParseResult) error {
 	for typeName, complexType := range extractedTypes.ComplexTypes {
 		wasChanged := false
 		for i, property := range complexType.Properties {
-			if _, isDummy := property.ValueType.(types.DummyType); isDummy {
-				// TODO replace propertyType
+			if dummyType, isDummy := property.ValueType.(types.DummyType); isDummy {
+				foundType, err := getTypeByName(extractedTypes, dummyType.Name)
+				if err != nil {
+					return fmt.Errorf("couldn't replace property dummy type, type: %s, property: %s, dummyType: %s, error: %v ",
+						complexType.Name, property.Name, dummyType.Name, err)
+				}
+				complexType.Properties[i].ValueType = foundType
 				complexType.Properties[i] = property
 				wasChanged = true
 			}
@@ -79,24 +138,37 @@ func resolveDummyTypesForComplexTypes(extractedTypes *types.ParseResult) {
 			extractedTypes.ComplexTypes[typeName] = complexType
 		}
 	}
+	return nil
 }
 
-func resolveDummyTypesForMapTypes(extractedTypes *types.ParseResult) {
+func resolveDummyTypesForMapTypes(extractedTypes *types.ParseResult) error {
 	for typeName, mapType := range extractedTypes.MapTypes {
-		if _, isDummy := mapType.ValueType.(types.DummyType); isDummy {
-			// TODO replace valueType
+		if dummyType, isDummy := mapType.ValueType.(types.DummyType); isDummy {
+			foundType, err := getTypeByName(extractedTypes, dummyType.Name)
+			if err != nil {
+				return fmt.Errorf("couldn't replace value dummy type in map, type: %v, dummyType: %s, error: %v ",
+					mapType.Name, dummyType.Name, err)
+			}
+			mapType.ValueType = foundType
 			extractedTypes.MapTypes[typeName] = mapType
 		}
 	}
+	return nil
 }
 
-func resolveDummyTypesForArrayTypes(extractedTypes *types.ParseResult) {
+func resolveDummyTypesForArrayTypes(extractedTypes *types.ParseResult) error {
 	for typeName, arrayType := range extractedTypes.ArrayTypes {
-		if _, isDummy := arrayType.ValueType.(types.DummyType); isDummy {
-			// TODO replace valueType
+		if dummyType, isDummy := arrayType.ValueType.(types.DummyType); isDummy {
+			foundType, err := getTypeByName(extractedTypes, dummyType.Name)
+			if err != nil {
+				return fmt.Errorf("couldn't replace value dummy type in array, type: %v, dummyType: %s, error: %v",
+					arrayType.Name, dummyType.Name, err)
+			}
+			arrayType.ValueType = foundType
 			extractedTypes.ArrayTypes[typeName] = arrayType
 		}
 	}
+	return nil
 }
 
 func ToProperName(input string) string {
@@ -161,7 +233,7 @@ func extractType(name string, valuesMap map[string]any, alreadyExtractedTypes *t
 		} else {
 			return types.DummyType{}, fmt.Errorf("$ref doesn't point to a string entry, type: %s", name)
 		}
-		return extractRefType(name, alreadyExtractedTypes, topLevel, refStr)
+		return extractRefType(name, alreadyExtractedTypes, refStr)
 	} else if t, ok := valuesMap["type"]; ok {
 		// found type entry
 		var typeStr string
@@ -242,8 +314,7 @@ func extractEnumType(name string, alreadyExtractedTypes *types.ParseResult, enum
 	}
 }
 
-func extractRefType(name string, alreadyExtractedTypes *types.ParseResult,
-	topLevel bool, refStr string) (any, error) {
+func extractRefType(name string, alreadyExtractedTypes *types.ParseResult, refStr string) (any, error) {
 	// supported refStr: #/definitions/MY_TYPE
 	lastSlash := strings.LastIndex(refStr, "/")
 	if lastSlash == -1 {
