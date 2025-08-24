@@ -15,40 +15,44 @@ import (
 func TestParseBytes(t *testing.T) {
 	bytes, err := os.ReadFile("_resources/tests/test_schema.json")
 	require.Nil(t, err)
-	typesMap, err := p.ParseBytes(bytes)
+	result, err := p.ParseBytes(bytes)
 	require.Nil(t, err)
-	require.NotNil(t, typesMap, "types map is nil")
-	require.Equal(t, 5, len(typesMap), "wrong number of elements in types map")
+	require.Equal(t, 4, len(result.ComplexTypes), "wrong number of elements in types map")
+	require.Equal(t, 1, len(result.StringEnums), "wrong number of elements in types string enum")
+	require.Equal(t, 0, len(result.ArrayTypes))
+	require.Equal(t, 0, len(result.MapTypes))
+	require.Equal(t, 0, len(result.IntEnums))
+	require.Equal(t, 0, len(result.IntegerTypes))
+	require.Equal(t, 0, len(result.NumberTypes))
+	require.Equal(t, 0, len(result.StringTypes))
+	require.Equal(t, 0, len(result.UUIDTypes))
+	require.Equal(t, 0, len(result.DateTypes))
+	require.Equal(t, 0, len(result.DateTimeTypes))
+	require.Equal(t, 0, len(result.TimeTypes))
+	require.Equal(t, 0, len(result.DurationTypes))
+	require.Equal(t, 0, len(result.BoolTypes))
+	require.Equal(t, 0, len(result.BinaryTypes))
+	require.Equal(t, 0, len(result.ObjectTypes))
 
-	personName, exist := typesMap["PersonName"]
+	personName, exist := result.ComplexTypes["PersonName"]
 	require.True(t, exist, "PersonName doesn't exist")
-	personNameComplex, ok := personName.(types.ComplexType)
-	require.True(t, ok, "PersonName isn't complex type")
-	fmt.Println(personNameComplex)
+	fmt.Println(personName)
 
-	personContact, exist := typesMap["PersonContact"]
+	personContact, exist := result.ComplexTypes["PersonContact"]
 	require.True(t, exist, "PersonContact doesn't exist")
-	personContactComplex, ok := personContact.(types.ComplexType)
-	require.True(t, ok, "PersonContact isn't complex type")
-	fmt.Println(personContactComplex)
+	fmt.Println(personContact)
 
-	personContactAddress, exist := typesMap["PersonContactAddress"]
+	personContactAddress, exist := result.ComplexTypes["PersonContactAddress"]
 	require.True(t, exist, "PersonContactAddress doesn't exist")
-	personContactAddressComplex, ok := personContactAddress.(types.ComplexType)
-	require.True(t, ok, "PersonContactAddress isn't complex type")
-	fmt.Println(personContactAddressComplex)
+	fmt.Println(personContactAddress)
 
-	personRoles, exist := typesMap["PersonRolesItems"]
+	personRoles, exist := result.StringEnums["PersonRolesItems"]
 	require.True(t, exist, "PersonRolesItems doesn't exist")
-	personRolesComplex, ok := personRoles.(types.StringEnumType)
-	require.True(t, ok, "PersonRoles isn't complex type")
-	fmt.Println(personRolesComplex)
+	fmt.Println(personRoles)
 
-	person, exist := typesMap["Person"]
+	person, exist := result.ComplexTypes["Person"]
 	require.True(t, exist, "Person doesn't exist")
-	personComplex, ok := person.(types.ComplexType)
-	require.True(t, ok, "Person isn't complex type")
-	fmt.Println(personComplex)
+	fmt.Println(person)
 
 }
 
@@ -109,11 +113,9 @@ func TestTopLevelInt(t *testing.T) {
 		require.Nil(t, err)
 		m, err := p.ParseBytes(bytes)
 		require.Nil(t, err)
-		require.Len(t, m, 1, "wrong number of returned types")
-		for _, v := range m {
-			x, ok := v.(types.IntegerType)
-			require.True(t, ok)
-			require.Equal(t, test.expected, x)
+		require.Len(t, m.IntegerTypes, 1, "wrong number of returned types")
+		for _, v := range m.IntegerTypes {
+			require.Equal(t, test.expected, v)
 		}
 	}
 }
@@ -148,11 +150,9 @@ func TestTopLevelNumber(t *testing.T) {
 		require.Nil(t, err)
 		m, err := p.ParseBytes(bytes)
 		require.Nil(t, err)
-		require.Len(t, m, 1, "wrong number of returned types")
-		for _, v := range m {
-			x, ok := v.(types.NumberType)
-			require.True(t, ok)
-			require.Equal(t, test.expected, x)
+		require.Len(t, m.NumberTypes, 1, "wrong number of returned types")
+		for _, v := range m.NumberTypes {
+			require.Equal(t, test.expected, v)
 		}
 	}
 }
@@ -175,11 +175,9 @@ func TestTopLevelBool(t *testing.T) {
 		require.Nil(t, err)
 		m, err := p.ParseBytes(bytes)
 		require.Nil(t, err)
-		require.Len(t, m, 1, "wrong number of returned types")
-		for _, v := range m {
-			x, ok := v.(types.BoolType)
-			require.True(t, ok)
-			require.Equal(t, test.expected, x)
+		require.Len(t, m.BoolTypes, 1, "wrong number of returned types")
+		for _, v := range m.BoolTypes {
+			require.Equal(t, test.expected, v)
 		}
 	}
 }
@@ -187,49 +185,45 @@ func TestTopLevelBool(t *testing.T) {
 func TestTopLevelEnum(t *testing.T) {
 	tests := []struct {
 		input     string
-		checkFunc func(v any) bool
+		checkFunc func(v types.ParseResult) bool
 	}{
 		{
 			input: "_resources/tests/enum_str_1.json",
-			checkFunc: func(v any) bool {
-				x, ok := v.(types.StringEnumType)
-				if !ok {
-					return false
+			checkFunc: func(v types.ParseResult) bool {
+				require.Equal(t, 1, len(v.StringEnums))
+				for _, x := range v.StringEnums {
+					assert.Equal(t, []string{"red", "green", "blue"}, x.Values)
 				}
-				assert.Equal(t, []string{"red", "green", "blue"}, x.Values)
 				return true
 			},
 		},
 		{
 			input: "_resources/tests/enum_str_2.json",
-			checkFunc: func(v any) bool {
-				x, ok := v.(types.StringEnumType)
-				if !ok {
-					return false
+			checkFunc: func(v types.ParseResult) bool {
+				require.Equal(t, 1, len(v.StringEnums))
+				for _, x := range v.StringEnums {
+					assert.Equal(t, []string{"red", "green", "blue"}, x.Values)
 				}
-				assert.Equal(t, []string{"red", "green", "blue"}, x.Values)
 				return true
 			},
 		},
 		{
 			input: "_resources/tests/enum_int_1.json",
-			checkFunc: func(v any) bool {
-				x, ok := v.(types.IntEnumType)
-				if !ok {
-					return false
+			checkFunc: func(v types.ParseResult) bool {
+				require.Equal(t, 1, len(v.IntEnums))
+				for _, x := range v.IntEnums {
+					assert.Equal(t, []int{13, 700, 42}, x.Values)
 				}
-				assert.Equal(t, []int{13, 700, 42}, x.Values)
 				return true
 			},
 		},
 		{
 			input: "_resources/tests/enum_int_2.json",
-			checkFunc: func(v any) bool {
-				x, ok := v.(types.IntEnumType)
-				if !ok {
-					return false
+			checkFunc: func(v types.ParseResult) bool {
+				require.Equal(t, 1, len(v.IntEnums))
+				for _, x := range v.IntEnums {
+					assert.Equal(t, []int{13, 700, 42}, x.Values)
 				}
-				assert.Equal(t, []int{13, 700, 42}, x.Values)
 				return true
 			},
 		},
@@ -239,10 +233,7 @@ func TestTopLevelEnum(t *testing.T) {
 		require.Nil(t, err)
 		m, err := p.ParseBytes(bytes)
 		require.Nil(t, err)
-		require.Len(t, m, 1, "wrong number of returned types")
-		for _, v := range m {
-			require.True(t, test.checkFunc(v))
-		}
+		require.True(t, test.checkFunc(m))
 	}
 }
 
@@ -280,11 +271,9 @@ func TestTopArrayType(t *testing.T) {
 		require.Nil(t, err)
 		m, err := p.ParseBytes(bytes)
 		require.Nil(t, err)
-		require.Len(t, m, 1, "wrong number of returned types")
-		for _, v := range m {
-			x, ok := v.(types.ArrayType)
-			require.True(t, ok)
-			require.Equal(t, test.expected, x)
+		require.Len(t, m.ArrayTypes, 1, "wrong number of returned types")
+		for _, v := range m.ArrayTypes {
+			require.Equal(t, test.expected, v)
 		}
 	}
 }
@@ -328,11 +317,9 @@ func TestTopMapType(t *testing.T) {
 		require.Nil(t, err)
 		m, err := p.ParseBytes(bytes)
 		require.Nil(t, err)
-		require.Len(t, m, 1, "wrong number of returned types")
-		for _, v := range m {
-			x, ok := v.(types.MapType)
-			require.True(t, ok)
-			require.Equal(t, test.expected, x)
+		require.Len(t, m.MapTypes, 1, "wrong number of returned types")
+		for _, v := range m.MapTypes {
+			require.Equal(t, test.expected, v)
 		}
 	}
 }
