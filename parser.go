@@ -44,8 +44,59 @@ func ParseBytes(input []byte) (types.ParseResult, error) {
 		return extractedTypes, fmt.Errorf("error while parsing main type: %v", err)
 	}
 
-	// TODO - tidy up extractedTypes and remove all redefinitions of basic types (int, number, bool, string)
+	// TODO - find unresolved references
+	// if t, exist := alreadyExtractedTypes.ComplexTypes[typeName]; exist {
+	// if t, exist := alreadyExtractedTypes.StringEnums[typeName]; exist {
+	// if t, exist := alreadyExtractedTypes.IntEnums[typeName]; exist {
+	// if t, exist := alreadyExtractedTypes.ArrayTypes[typeName]; exist {
+	// if t, exist := alreadyExtractedTypes.MapTypes[typeName]; exist {
+	// if t, exist := alreadyExtractedTypes.IntegerTypes[typeName]; exist {
+	// if t, exist := alreadyExtractedTypes.NumberTypes[typeName]; exist {
+	// if t, exist := alreadyExtractedTypes.StringTypes[typeName]; exist {
+	// if t, exist := alreadyExtractedTypes.UUIDTypes[typeName]; exist {
+	// if t, exist := alreadyExtractedTypes.DateTypes[typeName]; exist {
+	// if t, exist := alreadyExtractedTypes.DateTimeTypes[typeName]; exist {
+	// if t, exist := alreadyExtractedTypes.TimeTypes[typeName]; exist {
+	// if t, exist := alreadyExtractedTypes.DurationTypes[typeName]; exist {
+	// if t, exist := alreadyExtractedTypes.BoolTypes[typeName]; exist {
+	// if t, exist := alreadyExtractedTypes.BinaryTypes[typeName]; exist {
+	// if t, exist := alreadyExtractedTypes.ObjectTypes[typeName]; exist {
+
 	return extractedTypes, nil
+}
+
+func resolveDummyTypesForComplexTypes(extractedTypes *types.ParseResult) {
+	for typeName, complexType := range extractedTypes.ComplexTypes {
+		wasChanged := false
+		for i, property := range complexType.Properties {
+			if _, isDummy := property.ValueType.(types.DummyType); isDummy {
+				// TODO replace propertyType
+				complexType.Properties[i] = property
+				wasChanged = true
+			}
+		}
+		if wasChanged {
+			extractedTypes.ComplexTypes[typeName] = complexType
+		}
+	}
+}
+
+func resolveDummyTypesForMapTypes(extractedTypes *types.ParseResult) {
+	for typeName, mapType := range extractedTypes.MapTypes {
+		if _, isDummy := mapType.ValueType.(types.DummyType); isDummy {
+			// TODO replace valueType
+			extractedTypes.MapTypes[typeName] = mapType
+		}
+	}
+}
+
+func resolveDummyTypesForArrayTypes(extractedTypes *types.ParseResult) {
+	for typeName, arrayType := range extractedTypes.ArrayTypes {
+		if _, isDummy := arrayType.ValueType.(types.DummyType); isDummy {
+			// TODO replace valueType
+			extractedTypes.ArrayTypes[typeName] = arrayType
+		}
+	}
 }
 
 func ToProperName(input string) string {
@@ -110,7 +161,7 @@ func extractType(name string, valuesMap map[string]any, alreadyExtractedTypes *t
 		} else {
 			return types.DummyType{}, fmt.Errorf("$ref doesn't point to a string entry, type: %s", name)
 		}
-		return extractRefType(name, valuesMap, alreadyExtractedTypes, topLevel, refStr)
+		return extractRefType(name, alreadyExtractedTypes, topLevel, refStr)
 	} else if t, ok := valuesMap["type"]; ok {
 		// found type entry
 		var typeStr string
@@ -191,9 +242,65 @@ func extractEnumType(name string, alreadyExtractedTypes *types.ParseResult, enum
 	}
 }
 
-func extractRefType(name string, valuesMap map[string]any, alreadyExtractedTypes *types.ParseResult,
+func extractRefType(name string, alreadyExtractedTypes *types.ParseResult,
 	topLevel bool, refStr string) (any, error) {
-	return types.DummyType{}, fmt.Errorf("TODO")
+	// supported refStr: #/definitions/MY_TYPE
+	lastSlash := strings.LastIndex(refStr, "/")
+	if lastSlash == -1 {
+		return types.DummyType{}, fmt.Errorf("refStr has no '/', seems to have the wrong format: %s, type: %s", refStr, name)
+	}
+	typeName := refStr[lastSlash+1:]
+	if t, exist := alreadyExtractedTypes.ComplexTypes[typeName]; exist {
+		return t, nil
+	}
+	if t, exist := alreadyExtractedTypes.StringEnums[typeName]; exist {
+		return t, nil
+	}
+	if t, exist := alreadyExtractedTypes.IntEnums[typeName]; exist {
+		return t, nil
+	}
+	if t, exist := alreadyExtractedTypes.ArrayTypes[typeName]; exist {
+		return t, nil
+	}
+	if t, exist := alreadyExtractedTypes.MapTypes[typeName]; exist {
+		return t, nil
+	}
+	if t, exist := alreadyExtractedTypes.IntegerTypes[typeName]; exist {
+		return t, nil
+	}
+	if t, exist := alreadyExtractedTypes.NumberTypes[typeName]; exist {
+		return t, nil
+	}
+	if t, exist := alreadyExtractedTypes.StringTypes[typeName]; exist {
+		return t, nil
+	}
+	if t, exist := alreadyExtractedTypes.UUIDTypes[typeName]; exist {
+		return t, nil
+	}
+	if t, exist := alreadyExtractedTypes.DateTypes[typeName]; exist {
+		return t, nil
+	}
+	if t, exist := alreadyExtractedTypes.DateTimeTypes[typeName]; exist {
+		return t, nil
+	}
+	if t, exist := alreadyExtractedTypes.TimeTypes[typeName]; exist {
+		return t, nil
+	}
+	if t, exist := alreadyExtractedTypes.DurationTypes[typeName]; exist {
+		return t, nil
+	}
+	if t, exist := alreadyExtractedTypes.BoolTypes[typeName]; exist {
+		return t, nil
+	}
+	if t, exist := alreadyExtractedTypes.BinaryTypes[typeName]; exist {
+		return t, nil
+	}
+	if t, exist := alreadyExtractedTypes.ObjectTypes[typeName]; exist {
+		return t, nil
+	}
+	return types.DummyType{
+		Name: typeName,
+	}, nil
 }
 
 func extractNormalType(name string, valuesMap map[string]any, alreadyExtractedTypes *types.ParseResult,
@@ -477,7 +584,7 @@ func getValueType(name, key string, valuesMap map[string]any, alreadyExtractedTy
 		if v, isMap := f.(map[string]any); isMap {
 			return extractType(name, v, alreadyExtractedTypes, false)
 		} else {
-			return types.DummyType{}, fmt.Errorf("given key is no map type (key: %s)", key) // TODO
+			return types.DummyType{}, fmt.Errorf("given key is no map type (key: %s)", key)
 		}
 	} else {
 		return types.DummyType{}, fmt.Errorf("couldn't find key to extract the value type")
@@ -593,5 +700,5 @@ func extractObjectType(name string, valuesMap map[string]any, alreadyExtractedTy
 	}
 	return types.ObjectType{
 		Name: o.NewOptionalConditional(nameIfTopLevelElseEmpty(name, topLevel), ignoreIfEmptyStr),
-	}, nil // TODO
+	}, nil
 }
