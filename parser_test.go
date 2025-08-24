@@ -50,10 +50,60 @@ func TestParseBytes(t *testing.T) {
 	require.True(t, exist, "PersonRolesItems doesn't exist")
 	fmt.Println(personRoles)
 
+	_, exist = result.ComplexTypes["Person"]
+	require.True(t, exist, "Person doesn't exist")
+}
+
+func TestParseBytesWithRefs(t *testing.T) {
+	bytes, err := os.ReadFile("_resources/tests/test_schema_with_refs.json")
+	require.Nil(t, err)
+	result, err := p.ParseBytes(bytes)
+	require.Nil(t, err)
+	require.Equal(t, 4, len(result.ComplexTypes), "wrong number of elements in types map")
+	require.Equal(t, 1, len(result.StringEnums), "wrong number of elements in types string enum")
+	require.Equal(t, 0, len(result.ArrayTypes))
+	require.Equal(t, 0, len(result.MapTypes))
+	require.Equal(t, 0, len(result.IntEnums))
+	require.Equal(t, 0, len(result.IntegerTypes))
+	require.Equal(t, 0, len(result.NumberTypes))
+	require.Equal(t, 0, len(result.StringTypes))
+	require.Equal(t, 0, len(result.UUIDTypes))
+	require.Equal(t, 0, len(result.DateTypes))
+	require.Equal(t, 0, len(result.DateTimeTypes))
+	require.Equal(t, 0, len(result.TimeTypes))
+	require.Equal(t, 0, len(result.DurationTypes))
+	require.Equal(t, 0, len(result.BoolTypes))
+	require.Equal(t, 0, len(result.BinaryTypes))
+	require.Equal(t, 0, len(result.ObjectTypes))
+
+	personName, exist := result.ComplexTypes["Name"]
+	require.True(t, exist, "PersonName doesn't exist")
+	fmt.Println(personName)
+
+	personContact, exist := result.ComplexTypes["PersonContact"]
+	require.True(t, exist, "PersonContact doesn't exist")
+	fmt.Println(personContact)
+
+	personContactAddress, exist := result.ComplexTypes["PersonContactAddress"]
+	require.True(t, exist, "PersonContactAddress doesn't exist")
+	fmt.Println(personContactAddress)
+
+	personRoles, exist := result.StringEnums["PersonRolesItems"]
+	require.True(t, exist, "PersonRolesItems doesn't exist")
+	fmt.Println(personRoles)
+
 	person, exist := result.ComplexTypes["Person"]
 	require.True(t, exist, "Person doesn't exist")
-	fmt.Println(person)
-
+	found := false
+	for _, p := range person.Properties {
+		if p.Name == "name" {
+			found = true
+			nameType, ok := p.ValueType.(types.ComplexType)
+			require.True(t, ok, "name property of Person isn't of ComplexType")
+			require.Equal(t, "Name", nameType.Name, "name property of Person doesn't point to a type with name 'Name'")
+		}
+	}
+	require.True(t, found, "didn't find name property in Person type")
 }
 
 func TestToProperName(t *testing.T) {
